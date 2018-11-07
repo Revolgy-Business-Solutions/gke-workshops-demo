@@ -1,5 +1,5 @@
 
-# Example deployment of nodejs app with mysql to GKE
+# Example deployment of nodejs app with CloudSQL (mysql) to GKE
 
 ## CLI tools initiation
 
@@ -7,7 +7,7 @@ In this course we will use following cli tools:
 
 - gcloud
 - kubectl
-- Docker
+- docker
 
 ### gcloud
 
@@ -17,7 +17,7 @@ Init configuration: `gcloud init`
 
 Gcloud init will guide you through init configuration including authenticating with your gmail account which we will use to create our GCP project.
 
-### Kubectl
+### kubectl
 
 Kubernetes cli can be installed as a gcloud component. In can be installed as a standalone app but considering we will be working on GCP infrastructure it is not advisable.
 
@@ -99,7 +99,7 @@ Setting will be guided in workshop, here are the main setting changes:
 - Zone: europe-west1-c
 - Master version: 1.10.6-gke.6
 
--NodePool:
+- NodePool:
   - size: 2
   - Boot disk size: 40Gb
   - Enable preemptible nodes
@@ -120,11 +120,11 @@ Cloud Source Repository serve as a private git repository. We create repository 
 
 #### Cloud Build
 
-In GCP console, we select Cloud Build from left menu. We will immediately see Build history, which is probably going to be empty because we didnt run our pipeline yet.
+In GCP console, we select Cloud Build from left menu. We will immediately see Build history, which is probably going to be empty because we didn't run our pipeline yet.
 
 When you go to Build triggers tab, you can create your first deployment trigger with "Add Trigger" button.
 
-As of now, trigger creation have 3 steps, i will list here values we want to fill into each step
+As of now, trigger creation have 3 steps, I will list here values we want to fill into each step
 
 1 - Source
 - Cloud Source Repository
@@ -183,7 +183,7 @@ Later on we will use special proxy that will allow us to securely connect to the
 
 #### create service account
 
-For authentication to the database we will need service account. You can create one in "IAM & admin" section and "Service accounts" subsection. Here we will `Create service account`. We name him i.e. sqlproxy and on the permissions step we will select `Cloud SQL Admin`. On the last step we will generate json config file which we save for later.
+For authentication to the database we will need service account. You can create one in "IAM & admin" section and "Service accounts" subsection. Here we will `Create service account`. We name it i.e. sqlproxy and on the permissions step we will select `Cloud SQL Admin`. On the last step we will generate json config file which we save for later.
 
 ## Docker image preparation
 
@@ -308,7 +308,7 @@ spec:
   - name: http-demoapp
     protocol: TCP
     port: 80
-    targetPort: 8000
+    targetPort: 3000
   type: LoadBalancer
 ```
 
