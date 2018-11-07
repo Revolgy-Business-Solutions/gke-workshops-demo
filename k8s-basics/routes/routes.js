@@ -1,5 +1,6 @@
 // Load the MySQL pool connection
 const pool = require('../data/config');
+var path = require('path');
 
 // Route the app
 const router = app => {
@@ -21,6 +22,11 @@ const router = app => {
             message: 'Yay, I stressed!'
         });
 
+    });
+
+    // Return donwloaded kube index.html
+    app.get('/kube', (request, response) => {
+        response.sendFile(path.join('/usr/src/app/assets/kube.html'));
     });
 
     // Display all users

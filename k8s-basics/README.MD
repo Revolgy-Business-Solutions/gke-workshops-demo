@@ -1,4 +1,3 @@
-
 # Example deployment of nodejs app with mysql to GKE
 
 ## CLI tools initiation
@@ -60,7 +59,6 @@ kubectl
 
 Client Version: version.Info{Major:"1", Minor:"10", GitVersion:"v1.10.7", GitCommit:"0c38c362511b20a098d7cd855f1314dad92c2780", GitTreeState:"clean", BuildDate:"2018-08-20T10:09:03Z", GoVersion:"go1.9.3", Compiler:"gc", Platform:"linux/amd64"}
 Server Version: version.Info{Major:"1", Minor:"10+", GitVersion:"v1.10.7-gke.6", GitCommit:"06898a4d0f2b96f82b43d9e59fa2825bd3d616a2", GitTreeState:"clean", BuildDate:"2018-10-02T17:32:01Z", GoVersion:"go1.9.3b4", Compiler:"gc", Platform:"linux/amd64"}
-
 
 >> docker version
 Client:
@@ -212,13 +210,13 @@ You have to tag builded image as `eu.gcr.io/_GCP_PROJECT_ID/SOME_FOLDER/APP_NAME
 In my case docker build will look like this:
 
 ```
-docker build -t eu.gcr.io/xxx/devfest-workshop/app:1
+docker build -t eu.gcr.io/xxx/k8s-demo/app:1
 ```
 
 Next we can push this image to Container Registry on our Google Cloud Project
 
 ```
-gcloud docker -- push eu.gcr.io/xxx/devfest-workshop/app:1
+gcloud docker -- push eu.gcr.io/xxx/k8s-demo/app:1
 ```
 
 ## Kubernetes configuration
@@ -230,13 +228,13 @@ gcloud container clusters list
 ```
 
 ```
-gcloud container clusters get-credentials devfest-workshop --zone europe-west1-c
+gcloud container clusters get-credentials k8s-demo --zone europe-west1-c
 ```
 
 ### Create namespace
 
 ```
-kubectl create namespace devfest-demo
+kubectl create namespace demo
 ```
 
 ```
@@ -248,7 +246,7 @@ kubectl config current-context
 ```
 
 ```
-kubectl config set-context $(kubectl config current-context) --namespace devfest-demo
+kubectl config set-context $(kubectl config current-context) --namespace demo
 ```
 
 ### Deployment configuration
@@ -351,7 +349,7 @@ Firewall rule configurationi (besides default values):
 
 - ports: tcp: 30000-32767
 
-#### Deployment health cycle - Health and Readiness probess
+### Deployment health cycle - Health and Readiness probess
 
 Deployment itself keeps desired replicas deployed but it can only see if container is running or not which is based on if core continer process is running or not. What it can't do though is recognize where application is healthy, working properly, isn't overloaded etc. For this purpose we have two probes that we can utilize.
 
@@ -387,7 +385,7 @@ For testing or debugging purposes, we dont have to creating loadbalancers and in
 kubectl port-forward kuard 8080:8080 &
 ```
 
-#### Deployment rollout strategy
+### Deployment rollout strategy
 
 We can specify parameters of upgrading deployment to new image version.
 Default upgrade strategy is rolling update with 25% max unavailable and 25% max surge
@@ -400,7 +398,7 @@ strategy:
     maxUnavailable: 0
 ```
 
-#### kubectl set image deployment 
+### kubectl set image deployment 
 
 We don't have to apply whole deployment configuration when we need to upgrade deployment image
 
@@ -408,7 +406,7 @@ We don't have to apply whole deployment configuration when we need to upgrade de
 kubectl set image deployment.v1.apps/demoapp demoapp=IMAGE_TAG
 ```
 
-#### Deployment resource management
+### Deployment resource management
 
 We can limit the amount of resources that each container can utilize on node as well as how much is guaranteed for container to have. 
 
@@ -461,7 +459,52 @@ In some situations, multiple containers per pod can be deployed together. It sho
 
 In this scenario we will deploy CloudSQL proxy which will allow us secure connection to CLoudSQL instance.
 
-#### Creating Cloud SQL user for authentication
+### Init Containers
+
+As pod can have multiple containers, it can have one or more init containers. Init containers allways runs before application containers and they have to complete successfuly for application containers to start. In case of multiple init containers, they run one after the other, not simultaneously.
+
+The advantage of using init containers is that whatever init container is used for dont have to be integrated into application so in case of a restart of app container, there is no excess operations because init containers dont run again.
+
+example usage:
+
+- download or process configs i.e. remotely, from config maps or secrets to local storage
+- prepare some environment variables for main containers
+- wait for services that app is dependent on to become ready
+
+Here we have example of init container that downloads index page of kubernetes website and saves it to local storage.
+
+```
+initContainers:
+- name: install
+  image: busybox
+  command:
+  - wget
+  - "-O"
+  - "/work-dir/kube.html"
+  - http://kubernetes.io
+  volumeMounts:
+  - name: workdir
+    mountPath: "/work-dir"
+```
+
+We mounted volume into the container, but we didn't specify where or how the volume is created.
+
+```
+volumes:
+- name: workdir
+  emptyDir: {}
+```
+
+Next we mount that volume to our application container so we can access downloaded index.
+
+```
+volumeMounts:
+- name: workdir
+  mountPath: /usr/src/app/assets
+```
+
+
+### Creating Cloud SQL user for authentication
 
 First we will create SQL user with gcloud cli. We need to know name of our SQL instance to do so. We can either find it in GCP UI console, or with following command
 
