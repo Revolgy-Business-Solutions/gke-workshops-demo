@@ -4,6 +4,8 @@ metadata:
   name: test
   annotations:
     kubernetes.io/ingress.class: "gce"
+    #kubernetes.io/ingress.global-static-ip-name: "kubernetes-ingress"
+    #external-dns.alpha.kubernetes.io/hostname: "gke-ingress.example.com"    
 spec:
   tls:
   # This assumes tls-secret exists.
