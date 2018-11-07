@@ -35,3 +35,8 @@ gcloud beta container node-pools create master-pool-1 \
 # describe
 gcloud container node-pools describe master-pool-1 --cluster $cluster --zone=$zone
 ```
+
+## teardown
+```
+echo Y | gcloud container clusters delete $cluster --zone=$zone
+```
