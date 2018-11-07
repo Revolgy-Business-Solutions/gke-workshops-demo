@@ -8,14 +8,14 @@ metadata:
   name: nginx
 spec:
   rules:
-    - host: kuard.marekbartik.com
+    - host: kuard-nginx.marekbartik.com
       http:
         paths:
           - backend:
               serviceName: kuard
               servicePort: 80
             path: /
-    - host: kuard-canary.marekbartik.com
+    - host: kuard-canary-nginx.marekbartik.com
       http:
         paths:
           - backend:
@@ -24,6 +24,6 @@ spec:
             path: /
   tls:
     - hosts:
-        - "kuard.marekbartik.com"
-        - "kuard-canary.marekbartik.com"
+        - "kuard-nginx.marekbartik.com"
+        - "kuard-canary-nginx.marekbartik.com"
       secretName: example-tls
