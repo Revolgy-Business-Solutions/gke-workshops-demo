@@ -7,6 +7,7 @@ In this course we will use following cli tools:
 
 - gcloud
 - kubectl
+- Docker
 
 ### gcloud
 
@@ -14,15 +15,75 @@ Download: `https://cloud.google.com/sdk/install`
 
 Init configuration: `gcloud init`
 
-Gcloud init will guide you through init configuration including authenticating with your gmail account which we use to create ourt GCP project.
+Gcloud init will guide you through init configuration including authenticating with your gmail account which we will use to create our GCP project.
 
 ### Kubectl
 
-Kubernetes cli can be installed as a gcloud component. In can be installed as a standalone but considering we will be working on GCP infrastructure it is not advisable.
+Kubernetes cli can be installed as a gcloud component. In can be installed as a standalone app but considering we will be working on GCP infrastructure it is not advisable.
 
 ```
 gcloud components install kubectl
 ```
+
+### Docker
+
+instruction: [docs.docker.com/install](https://docs.docker.com/install)
+
+Choose your operating system and follow instructions
+
+### Tool Check
+
+Check that all tools needed are installed correctly by running this commands
+
+```
+gcloud version
+kubectl version
+docker version
+```
+
+You should see outcome similar to this:
+
+```
+>> gcloud version
+
+Google Cloud SDK 210.0.0
+alpha 2018.07.16
+app-engine-go 
+app-engine-python 1.9.73
+beta 2018.07.16
+bq 2.0.34
+core 2018.07.27
+gsutil 4.33
+kubectl 
+
+>> kubectl version
+
+Client Version: version.Info{Major:"1", Minor:"10", GitVersion:"v1.10.7", GitCommit:"0c38c362511b20a098d7cd855f1314dad92c2780", GitTreeState:"clean", BuildDate:"2018-08-20T10:09:03Z", GoVersion:"go1.9.3", Compiler:"gc", Platform:"linux/amd64"}
+Server Version: version.Info{Major:"1", Minor:"10+", GitVersion:"v1.10.7-gke.6", GitCommit:"06898a4d0f2b96f82b43d9e59fa2825bd3d616a2", GitTreeState:"clean", BuildDate:"2018-10-02T17:32:01Z", GoVersion:"go1.9.3b4", Compiler:"gc", Platform:"linux/amd64"}
+
+
+>> docker version
+Client:
+ Version:           18.06.0-ce
+ API version:       1.38
+ Go version:        go1.10.3
+ Git commit:        0ffa8257ec
+ Built:             Sun Aug 19 09:47:50 2018
+ OS/Arch:           linux/amd64
+ Experimental:      false
+
+Server:
+ Engine:
+  Version:          18.06.0-ce
+  API version:      1.38 (minimum version 1.12)
+  Go version:       go1.10.3
+  Git commit:       0ffa8257ec
+  Built:            Sun Aug 19 09:47:31 2018
+  OS/Arch:          linux/amd64
+  Experimental:     false
+```
+
+Note you may have only Client version listed after fresh install and thats correct as well as different version or gcloud components listed. The idea here is that those commands works.
 
 ## GCP Project preparation
 
@@ -47,15 +108,15 @@ Setting will be guided in workshop, here are the main setting changes:
 - Scopes:
   - CloudSQL - enabled
 
-### Prepare CI/CD (Optional, may be not part of kubernetes workshop)
+### Prepare CI/CD (Optional, may not part of kubernetes workshop)
 
 In this workshop we use GCP integrated solution for CI/CD. For CI part, there is feature called "Source Repositories" and for the CD part there is "Cloud Build". It's convenient for our use case since we don't need to employ more 3rd party services than necessary.
 
 Many other CI/CD solution can be used for deploying into GKE (i.e. github / gitlab / bitbucket with jenkins / gilab-ci / shipable etc.) but they are not covered in this workshop.
 
-#### Google Source Repositories - GCR
+#### Google Cloud Source Repositories
 
-GCR serve as a private git repository. We create repository in Google UI console. In Tools section of menu there is "Source repositories". Here we select tab "Repositories" where we can create new repository. After creation we are presented with commands to either clone repository or connect existing one.
+Cloud Source Repository serve as a private git repository. We create repository in Google UI console. In Tools section of menu there is "Source repositories". Here we select tab "Repositories" where we can create new repository. After creation we are presented with commands to either clone repository or connect existing one.
 
 #### Cloud Build
 
