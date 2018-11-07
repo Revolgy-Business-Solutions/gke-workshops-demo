@@ -21,17 +21,17 @@ gcloud container clusters create $cluster --zone $zone --username "admin" \
 # preemptible pool
 
 gcloud beta container node-pools create preemptible-pool \
-        --cluster testing --enable-autorepair --machine-type n1-highmem-2 \
-        --num-nodes=1 --enable-autoscaling --max-nodes=3 --min-nodes=1 --zone=europe-west1-b \
-        --preemptible --scopes=gke-default,storage-rw
+        --cluster $cluster --enable-autorepair --machine-type n1-highmem-2 \
+        --num-nodes=1 --enable-autoscaling --max-nodes=3 --min-nodes=1 --zone=$zone \
+        --preemptible --scopes=gke-default,storage-rw  --metadata disable-legacy-endpoints=true
 
 # master pool
 gcloud beta container node-pools create master-pool-1 \
         --node-labels=env=prod --node-taints=env=prod:NoSchedule \
-        --cluster testing --enable-autorepair --machine-type n1-highmem-2 \
-        --num-nodes=1 --enable-autoscaling --max-nodes=3 --min-nodes=1 --zone=europe-west1-b \
-        --scopes=gke-default,storage-rw
+        --cluster $cluster --enable-autorepair --machine-type n1-highmem-2 \
+        --num-nodes=1 --enable-autoscaling --max-nodes=3 --min-nodes=1 --zone=$zone \
+        --scopes=gke-default,storage-rw --metadata disable-legacy-endpoints=true
 
 # describe
-gcloud container node-pools describe master-pool-1 --cluster testing --zone=europe-west1-b
+gcloud container node-pools describe master-pool-1 --cluster $cluster --zone=$zone
 ```
