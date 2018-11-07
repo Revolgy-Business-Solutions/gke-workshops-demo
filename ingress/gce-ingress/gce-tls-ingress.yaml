@@ -1,16 +1,31 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: test
+  name: kuard-ingress
   annotations:
     kubernetes.io/ingress.class: "gce"
+    kubernetes.io/tls-acme: 'true'
     #kubernetes.io/ingress.global-static-ip-name: "kubernetes-ingress"
     #external-dns.alpha.kubernetes.io/hostname: "gke-ingress.example.com"    
 spec:
+spec:
+  rules:
+    - host: kuard.marekbartik.com
+      http:
+        paths:
+          - backend:
+              serviceName: kuard
+              servicePort: 80
+            path: /*
+    - host: kuard-canary.marekbartik.com
+      http:
+        paths:
+          - backend:
+              serviceName: kuard-canary
+              servicePort: 80
+            path: /*
   tls:
-  # This assumes tls-secret exists.
-  - secretName: tls-secret
-  backend:
-    # This assumes http-svc exists and routes to healthy endpoints.
-    serviceName: http-svc
-    servicePort: 80
+    - hosts:
+        - "kuard.marekbartik.com"
+        - "kuard-canary.marekbartik.com"
+      secretName: example-tls
