@@ -1,6 +1,6 @@
-#    - sed -i "s#IMAGE_TAG#$IMAGE_REPO:$IMAGE_TAG#" k8s/kuard-canary.yaml
-#    - cat k8s/kuard-canary.yaml
-#    - kubectl apply -f k8s/kuard-canary.yaml
+```    - sed -i "s#IMAGE_TAG#$IMAGE_REPO:$IMAGE_TAG#" k8s/kuard-canary.yaml
+    - cat k8s/kuard-canary.yaml
+    - kubectl apply -f k8s/kuard-canary.yaml
     - set -x
     - |
        helm upgrade --install --force --debug $RELEASE_NAME \
@@ -9,3 +9,4 @@
          --set image.tag="$IMAGE_TAG" \
          ./helm/
     - time kubectl rollout status deployment/$RELEASE_NAME
+```
