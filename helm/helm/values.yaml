@@ -1,0 +1,28 @@
+# Default values for app.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+replicas: 1
+namespace: default
+image:
+  repository: gcr.io/kuar-demo/kuard-amd64
+  tag: 1
+  pullPolicy: IfNotPresent
+service:
+  enabled: true
+  name: kuard
+  type: ClusterIP
+  externalPort: 80
+  internalPort: 8080
+spec:
+  terminationGracePeriodSeconds: 0
+canary:
+  enabled: false
+resources:
+  requests:
+    cpu: "50m"
+    memory: "32Mi"
+  limits:
+    cpu: "1000m"
+    memory: "256Mi"
+ingress:
+  enabled: true

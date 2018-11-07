@@ -1,0 +1,46 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    # Add to generate certificates for this ingress
+    kubernetes.io/tls-acme: 'true'
+  name: nginx
+  namespace: {{ .Values.namespace }}
+spec:
+  rules:
+{{ if eq .Values.namespace "default" }}
+    - host: kuard.marekbartik.com
+      http:
+        paths:
+          - backend:
+              serviceName: kuard
+              servicePort: 80
+            path: /
+    - host: kuard-canary.marekbartik.com
+      http:
+        paths:
+          - backend:
+              serviceName: kuard-canary
+              servicePort: 80
+            path: / 
+{{ else }}
+    - host: kuard-{{ .Values.namespace }}.marekbartik.com
+      http:
+        paths:
+          - backend:
+              serviceName: kuard
+              servicePort: 80
+            path: /
+{{ end }}
+  tls:
+    - hosts:
+{{ if eq .Values.namespace  "default" }}
+        - "kuard.marekbartik.com"
+        - "kuard-canary.marekbartik.com"
+{{ else }}
+        - "kuard-{{ .Values.namespace }}.marekbartik.com"
+{{ end }}
+      secretName: example-tls
+{{- end }}

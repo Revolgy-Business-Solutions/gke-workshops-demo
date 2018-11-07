@@ -1,0 +1,4 @@
+apiVersion: v1
+description: A kuard helm chart for Kubernetes
+name: kuard
+version: 0.1.0
