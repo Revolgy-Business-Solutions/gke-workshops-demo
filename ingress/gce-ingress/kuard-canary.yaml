@@ -3,26 +3,26 @@ kind: Deployment
 metadata:
   labels:
     app: kuard
-  name: kuard-prod
+  name: kuard-canary
 spec:
   strategy:
     rollingUpdate:
       maxSurge: 25%
       maxUnavailable: 25%
     type: RollingUpdate
-  replicas: 5
+  replicas: 1
   selector:
     matchLabels:
       app: kuard
-      track: stable
+      track: canary
   template:
     metadata:
       labels:
         app: kuard
-        track: stable
+        track: canary
     spec:
       containers:
-      - image: IMAGE_TAG
+      - image: gcr.io/kuar-demo/kuard-amd64:2
         imagePullPolicy: Always
         name: kuard
         resources:
