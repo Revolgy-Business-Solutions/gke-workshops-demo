@@ -17,3 +17,9 @@
 ```
 helm install --name wordpress stable/wordpress
 ```
+
+# test our chart
+
+```
+helm upgrade --install --force kuard-prod --set replicas=5,image.tag=1 ./helm/
+```
