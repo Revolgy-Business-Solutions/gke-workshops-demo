@@ -582,6 +582,14 @@ env:
 
 Node affinity is used for restricting on what nodes can specified pod run
 
+DEPRECATED
+```
+nodeSelector:
+  cloud.google.com/gke-nodepool: dev-pool
+```
+
+In newer version of kubernetes affinities needs to be used for handling pod assigning.
+
 ```
 affinity:
     nodeAffinity:
