@@ -489,3 +489,79 @@ env:
       name: cloudsql-db-credentials
       key: password
 ```
+
+### Assigning pods to nodes
+
+#### Node affinities
+
+Node affinity is used for restricting on what nodes can specified pod run
+
+DEPRECATED
+```
+nodeSelector:
+  cloud.google.com/gke-nodepool: dev-pool
+```
+
+In newer version of kubernetes affinities needs to be used for handling pod assigning.
+
+```
+affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: env
+            operator: In
+            values:
+            - dev
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 1
+        preference:
+          matchExpressions:
+          - key: node-type
+            operator: In
+            values:
+            - preemptible
+```
+
+#### Pod affinity and anti-affinity
+
+We can also configure with pod affinity and anti-affinity that we want that pod to run or not run on nodes that allready runs pods with specific labels.
+
+```
+affinity:
+  podAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - kuard
+      topologyKey: "kubernetes.io/hostname"
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - demoapp
+        topologyKey: "kubernetes.io/hostname"
+```
+
+#### Taints and tolerations
+
+```
+kubectl taint nodes node1 env=dev:NoSchedule
+```
+
+```
+tolerations:
+- key: "env"
+  operator: "Equal"
+  value: "dev"
+  effect: "NoSchedule"
+```
