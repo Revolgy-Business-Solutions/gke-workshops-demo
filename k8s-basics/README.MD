@@ -106,83 +106,6 @@ Setting will be guided in workshop, here are the main setting changes:
 - Scopes:
   - CloudSQL - enabled
 
-### Prepare CI/CD (Optional, may not part of kubernetes workshop)
-
-In this workshop we use GCP integrated solution for CI/CD. For CI part, there is feature called "Source Repositories" and for the CD part there is "Cloud Build". It's convenient for our use case since we don't need to employ more 3rd party services than necessary.
-
-Many other CI/CD solution can be used for deploying into GKE (i.e. github / gitlab / bitbucket with jenkins / gilab-ci / shipable etc.) but they are not covered in this workshop.
-
-#### Google Cloud Source Repositories
-
-Cloud Source Repository serve as a private git repository. We create repository in Google UI console. In Tools section of menu there is "Source repositories". Here we select tab "Repositories" where we can create new repository. After creation we are presented with commands to either clone repository or connect existing one.
-
-#### Cloud Build
-
-In GCP console, we select Cloud Build from left menu. We will immediately see Build history, which is probably going to be empty because we didn't run our pipeline yet.
-
-When you go to Build triggers tab, you can create your first deployment trigger with "Add Trigger" button.
-
-As of now, trigger creation have 3 steps, I will list here values we want to fill into each step
-
-1 - Source
-- Cloud Source Repository
-
-2 - Repository
-- Select your created Source Repository
-
-3 - Trigger settings
-- Name - Anything descriptive (optional)
-- Trigger type: (default) Branch
-- Branch: .*
-- Included and ignored files filter: (default) empty
-- Build configuration: cloudbuild.yaml
-- cloudbuild.yaml location: (default) /cloudbuild.yaml
-- substitution variables:
-  - _CLOUDSDK_CONTAINER_CLUSTER: your cluster name 
-  - _CLOUDSDK_COMPUTE_ZONE: your cluster zone
-
-### Create CloudSQL database
-
-CloudSQL is MySQL (not only) database managed by Google. In the "Storage" section in GCP console is "SQL". Here you can "Create Instance". We want MySQL, second generation database. For our purpose, lowest configurations is sufficient. Here is basic overview of non-default CloudSQL configuration (other than descriptive name and root password)
-
-region and Zone - Select same region and zone as your new cluster
-machine type and storage - if not set with "MySQL development" option, select "db-f1-micro" ad machine type and 10 GB storage capacity
-
-Confirm configuration and wait a few minutes for database to create.
-
-#### CloudSQL setup
-
-Users and access will be configure later in the workshop. Now we will just prepare database, tables and some example data. In database details in GCP console - SQL we have an option to `Connect using Cloud Shell`. After initiation of virtual console we are presented with prearanged gcloud command that will connect us directly to the datase. We will need to enter root password for this connection.
-
-Once we are in the database. we will create our test database, table and insert some test data.
-
-```
-CREATE DATABASE demoapp CHARACTER SET utf8 COLLATE utf8_general_ci;
-```
-
-```
-CREATE TABLE `users` (
-  `id`       int(11)     unsigned NOT NULL AUTO_INCREMENT,
-  `name`     varchar(30) DEFAULT '',
-  `email`    varchar(50) DEFAULT '',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-```
-
-```
-INSERT INTO users (name, email) 
-     VALUES ('Earl Grey', 'earl@grey.com'), 
-            ('Lapsang Souchong',  'lapsang@souchong.com');
-```
-
-#### Allow CloudSQL Admin API
-
-Later on we will use special proxy that will allow us to securely connect to the database. For this to work we need to enable `CloudSQL Admin API` on GCP. In the `APIs & Services` we have option to `Enable apis and services`. If we search for `SQL` in the opened API Library we will see our `Cloud SQL Admin API` which we need to select and then `ENABLE`.
-
-#### create service account
-
-For authentication to the database we will need service account. You can create one in "IAM & admin" section and "Service accounts" subsection. Here we will `Create service account`. We name it i.e. sqlproxy and on the permissions step we will select `Cloud SQL Admin`. On the last step we will generate json config file which we save for later.
-
 ## Docker image preparation
 
 First, we need docker image from our application which we can deploy to kubernetes. In root of our project we create `Dockerfile` file:
@@ -330,24 +253,15 @@ kind: Ingress
 metadata:
   name: basic-ingress
 spec:
-  backend:
-    serviceName: demoapp
-    servicePort: 80
+ rules:
+ - host: XXXXX.nip.io
+   http:
+     paths:
+     - path: /
+       backend:
+         serviceName: demoapp
+         servicePort: 80
 ```
-
-#### Update firewall rules
-
-For ingress to work correctly, we need to create a firewall rule that will allow traffic from Google subnets to our pods. The reason for that is that from these subnets are comming health check request that mark Loadbalancers backend on GCP layer healthy or not. If health check do not reach our services, ingress will not route traffic to them.
-
-Firewall rule configurationi (besides default values):
-
-- Targets: All instances in the network
-
-- Source IP ranges:
-  - 35.191.0.0/16
-  - 130.211.0.0/22
-
-- ports: tcp: 30000-32767
 
 ### Deployment health cycle - Health and Readiness probess
 
