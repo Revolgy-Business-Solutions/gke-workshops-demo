@@ -586,15 +586,13 @@ affinity:
       topologyKey: "kubernetes.io/hostname"
   podAntiAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
-    - weight: 100
-      podAffinityTerm:
-        labelSelector:
-          matchExpressions:
-          - key: app
-            operator: In
-            values:
-            - demoapp
-        topologyKey: "kubernetes.io/hostname"
+    - labelSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - demoapp
+      topologyKey: "kubernetes.io/hostname"
 ```
 
 #### Taints and tolerations
