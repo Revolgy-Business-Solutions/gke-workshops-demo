@@ -29,10 +29,10 @@ func main() {
   var err error
   if SQLDBENABLED == "True" {
     fmt.Println("sqldb")
-//    dbuser := os.Getenv("MYSQL_USER")
-//    dbpass := os.Getenv("MYSQL_PASS")
+    dbuser := os.Getenv("MYSQL_USER")
+    dbpass := os.Getenv("MYSQL_PASS")
 
-    db, err = sql.Open("mysql", "user:testuser@tcp(127.0.0.1:3306)/bookstore")
+    db, err = sql.Open("mysql", dbuser + ":" + dbpass + "@tcp(127.0.0.1:3306)/bookstore")
     if err != nil {
       panic(err)
     }
@@ -82,7 +82,7 @@ func GetCpu(w http.ResponseWriter, r *http.Request) {
 
 func GetKube(w http.ResponseWriter, r *http.Request) {
 
-  http.ServeFile(w, r, "kube.html")
+  http.ServeFile(w, r, "assets/kube.html")
 }
 
 func GetAllBooks(w http.ResponseWriter, r *http.Request) {

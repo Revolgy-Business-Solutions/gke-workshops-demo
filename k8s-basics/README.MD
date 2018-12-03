@@ -412,129 +412,6 @@ spec:
 
 Now we can try generate some load on our application
 
-### Sidecar containers
-
-In some situations, multiple containers per pod can be deployed together. It should serve as helper container only, we shouldn't deploy multiple core processes to one pod.
-
-In this scenario we will deploy CloudSQL proxy which will allow us secure connection to CLoudSQL instance.
-
-### Init Containers
-
-As pod can have multiple containers, it can have one or more init containers. Init containers allways runs before application containers and they have to complete successfuly for application containers to start. In case of multiple init containers, they run one after the other, not simultaneously.
-
-The advantage of using init containers is that whatever init container is used for dont have to be integrated into application so in case of a restart of app container, there is no excess operations because init containers dont run again.
-
-example usage:
-
-- download or process configs i.e. remotely, from config maps or secrets to local storage
-- prepare some environment variables for main containers
-- wait for services that app is dependent on to become ready
-
-Here we have example of init container that downloads index page of kubernetes website and saves it to local storage.
-
-```
-initContainers:
-- name: install
-  image: busybox
-  command:
-  - wget
-  - "-O"
-  - "/work-dir/kube.html"
-  - http://kubernetes.io
-  volumeMounts:
-  - name: workdir
-    mountPath: "/work-dir"
-```
-
-We mounted volume into the container, but we didn't specify where or how the volume is created.
-
-```
-volumes:
-- name: workdir
-  emptyDir: {}
-```
-
-Next we mount that volume to our application container so we can access downloaded index.
-
-```
-volumeMounts:
-- name: workdir
-  mountPath: /usr/src/app/assets
-```
-
-
-### Creating Cloud SQL user for authentication
-
-First we will create SQL user with gcloud cli. We need to know name of our SQL instance to do so. We can either find it in GCP UI console, or with following command
-
-```
-gcloud sql instances list
-```
-
-Next we can create db user: 
-
-```
-gcloud sql users create [DBUSER] --host=% --instance=[INSTANCE_NAME] --password=[PASSWORD]
-```
-
-#### Creating secrets
-
-Kubernetes environment supports secrets where you can add critical information and credentials and securely inject it directly into containers. That way these information dont have to be included nowhere in CI/CD pipeline and thus creating security risks.
-
-We need two secrets to deploy sql proxy as a sidecar. One for authenticating sql proxy itself on GCP security layer and second for user authentication on database layer.
-
-```
-kubectl create secret generic cloudsql-instance-credentials \
-    --from-file=credentials.json=[PROXY_KEY_FILE_PATH]
-```
-
-```
-kubectl create secret generic cloudsql-db-credentials \
-    --from-literal=username=[DBUSER] --from-literal=password=[PASSWORD]
-```
-
-#### Cloudsql proxy deployment configuration
-
-with credentials prepared, we can add sidecar yaml configuration to our application deployment.
-
-```
-- name: cloudsql-proxy
-  image: gcr.io/cloudsql-docker/gce-proxy:1.11
-  command: ["/cloud_sql_proxy",
-            "-instances=<INSTANCE_CONNECTION_NAME>=tcp:3306",
-            "-credential_file=/secrets/cloudsql/credentials.json"]
-  securityContext:
-    runAsUser: 2  # non-root user
-    allowPrivilegeEscalation: false
-  volumeMounts:
-    - name: cloudsql-instance-credentials
-      mountPath: /secrets/cloudsql
-      readOnly: true
-```
-
-```
-volumes:
-  - name: cloudsql-instance-credentials
-    secret:
-      secretName: cloudsql-instance-credentials
-```
-
-#### Adding secrets as container environment variables
-
-```
-env:
-- name: DB_USER
-  valueFrom:
-    secretKeyRef:
-      name: cloudsql-db-credentials
-      key: username
-- name: DB_PASSWORD
-  valueFrom:
-    secretKeyRef:
-      name: cloudsql-db-credentials
-      key: password
-```
-
 ### Assigning pods to nodes
 
 #### Node affinities
@@ -609,4 +486,205 @@ tolerations:
   operator: "Equal"
   value: "dev"
   effect: "NoSchedule"
+```
+
+### Volumes
+
+There is a lot of different type of volumes that can by mounted into the container. You can find full list of them in the kubernetes documentation.
+
+We will deploy simple nginx server with mounted Google Persistend Disk. First we need to create the disk. On GCP go to compute -> disks and create new disk with the name acording to the name in /volume/nginx-pd-volume.yaml in the repo. Or named it as you like and we will update the configuration.
+
+Now deploy nginx-pd-volume.yaml with the optional change of the PDName (the name of the GCP volume).
+
+When you will query nginx from the create service loadbalacer. You will see either no answer or an error. Thats because we overwritten the /usr/share/nginx/html folder with the volume. We will generate our own persistent html file by executing into the container
+
+```
+kubectl exec -it nginx bash
+```
+
+and creating some test index.html file
+
+```
+echo "Hello from the volume!"
+```
+
+If we query our nginx server again, on root, we will get our generated html site. Now try to delete the pod and recreate it again and see it the data are trully persistent.
+
+### Sidecar containers
+
+In some situations, multiple containers per pod can be deployed together. It should serve as helper container only, we shouldn't deploy multiple core processes to one pod.
+
+In this scenario we will deploy CloudSQL proxy which will allow us secure connection to CLoudSQL instance.
+
+### Init Containers
+
+As pod can have multiple containers, it can have one or more init containers. Init containers allways runs before application containers and they have to complete successfuly for application containers to start. In case of multiple init containers, they run one after the other, not simultaneously.
+
+The advantage of using init containers is that whatever init container is used for dont have to be integrated into application so in case of a restart of app container, there is no excess operations because init containers dont run again.
+
+example usage:
+
+- download or process configs i.e. remotely, from config maps or secrets to local storage
+- prepare some environment variables for main containers
+- wait for services that app is dependent on to become ready
+
+Here we have example of init container that downloads index page of kubernetes website and saves it to local storage.
+
+```
+initContainers:
+- name: install
+  image: busybox
+  command:
+  - wget
+  - "-O"
+  - "/work-dir/kube.html"
+  - http://kubernetes.io
+  volumeMounts:
+  - name: workdir
+    mountPath: "/work-dir"
+
+```
+
+We mounted volume into the container, but we didn't specify where or how the volume is created.
+
+```
+volumes:
+- name: workdir
+  emptyDir: {}
+```
+
+Next we mount that volume to our application container so we can access downloaded index.
+
+```
+volumeMounts:
+- name: workdir
+  mountPath: /root/assets
+```
+
+## CLoudSQL sidecar/secrets demo
+
+### Create CloudSQL database
+
+CloudSQL is MySQL (not only) database managed by Google. In the "Storage" section in GCP console is "SQL". Here you can "Create Instance". We want MySQL, second generation database. For our purpose, lowest configurations is sufficient. Here is basic overview of non-default CloudSQL configuration (other than descriptive name and root password)
+
+region and Zone - Select same region and zone as your new cluster
+machine type and storage - if not set with "MySQL development" option, select "db-f1-micro" ad machine type and 10 GB storage capacity
+
+Confirm configuration and wait a few minutes for database to create.
+
+#### CloudSQL setup
+
+Users and access will be configure later in the workshop. Now we will just prepare database, tables and some example data. In database details in GCP console - SQL we have an option to `Connect using Cloud Shell`. After initiation of virtual console we are presented with prearanged gcloud command that will connect us directly to the datase. We will need to enter root password for this connection.
+
+Once we are in the database. we will create our test database, table and insert some test data.
+
+```
+CREATE DATABASE bookstore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+```
+CREATE TABLE IF NOT EXISTS books (
+    id INT AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    author VARCHAR(255),
+    pages INT,
+    PRIMARY KEY (id)
+)  ENGINE=INNODB;
+```
+
+```
+INSERT INTO books (name, author, pages) VALUES ("testname", "testauthor", 123);
+```
+
+#### Allow CloudSQL Admin API
+
+Later on we will use special proxy that will allow us to securely connect to the database. For this to work we need to enable `CloudSQL Admin API` on GCP. In the `APIs & Services` we have option to `Enable apis and services`. If we search for `SQL` in the opened API Library we will see our `Cloud SQL Admin API` which we need to select and then `ENABLE`.
+
+#### create service account
+
+For authentication to the database we will need service account. You can create one in "IAM & admin" section and "Service accounts" subsection. Here we will `Create service account`. We name it i.e. sqlproxy and on the permissions step we will select `Cloud SQL Admin`. On the last step we will generate json config file which we save for later.
+
+
+### Creating Cloud SQL user for authentication
+
+First we will create SQL user with gcloud cli. We need to know name of our SQL instance to do so. We can either find it in GCP UI console, or with following command
+
+```
+gcloud sql instances list
+```
+
+Next we can create db user: 
+
+```
+gcloud sql users create [DBUSER] --host=% --instance=[INSTANCE_NAME] --password=[PASSWORD]
+```
+
+#### Creating secrets
+
+Kubernetes environment supports secrets where you can add critical information and credentials and securely inject it directly into containers. That way these information dont have to be included nowhere in CI/CD pipeline and thus creating security risks.
+
+We need two secrets to deploy sql proxy as a sidecar. One for authenticating sql proxy itself on GCP security layer and second for user authentication on database layer.
+
+```
+kubectl create secret generic cloudsql-instance-credentials \
+    --from-file=credentials.json=[PROXY_KEY_FILE_PATH]
+```
+
+```
+kubectl create secret generic cloudsql-db-credentials \
+    --from-literal=username=[DBUSER] --from-literal=password=[PASSWORD]
+```
+
+#### Cloudsql proxy deployment configuration
+
+with credentials prepared, we can add sidecar yaml configuration to our application deployment.
+
+```
+- name: cloudsql-proxy
+  image: gcr.io/cloudsql-docker/gce-proxy:1.11
+  command: ["/cloud_sql_proxy",
+            "-instances=<INSTANCE_CONNECTION_NAME>=tcp:3306",
+            "-credential_file=/secrets/cloudsql/credentials.json"]
+  securityContext:
+    runAsUser: 2  # non-root user
+    allowPrivilegeEscalation: false
+  volumeMounts:
+    - name: cloudsql-instance-credentials
+      mountPath: /secrets/cloudsql
+      readOnly: true
+```
+
+```
+volumes:
+  - name: cloudsql-instance-credentials
+    secret:
+      secretName: cloudsql-instance-credentials
+```
+
+#### Defining environment variables for connecting to DB
+```
+env:
+- name: "MYSQL_DATABASE"
+  value: "True"
+- name: "MYSQL_USER"
+  value: "user"
+- name: "MYSQL_PASS"
+  value: "usertest"
+```
+As we can see, we are specifying user credentials directly in the container configuration. This is, of course, bad practice since those credentials could be eaily accessed either from container description or stored configuration in repo. We will change it to use kubernetes secrets.
+
+#### Adding secrets as container environment variables
+
+```
+env:
+- name: MYSQL_USER
+  valueFrom:
+    secretKeyRef:
+      name: cloudsql-db-credentials
+      key: username
+- name: MYSQL_PASS
+  valueFrom:
+    secretKeyRef:
+      name: cloudsql-db-credentials
+      key: password
 ```
