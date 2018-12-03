@@ -87,6 +87,41 @@ Note you may have only Client version listed after fresh install and thats corre
 
 In this workshop we will be using Google Cloud Platform environment. It offers managed kubernetes environment, Google Kubernetes Engine as well as other services that will be used within this workshop such as managed MySQL database, container image repository and alternatively CI/CD tools.
 
+### Prepare CI/CD (Optional)
+
+In this workshop we use GCP integrated solution for CI/CD. For CI part, there is feature called "Source Repositories" and for the CD part there is "Cloud Build". It's convenient for our use case since we don't need to employ more 3rd party services than necessary.
+
+Many other CI/CD solution can be used for deploying into GKE (i.e. github / gitlab / bitbucket with jenkins / gilab-ci / shipable etc.) but they are not covered in this workshop.
+
+#### Google Cloud Source Repositories
+
+Cloud Source Repository serve as a private git repository. We create repository in Google UI console. In Tools section of menu there is "Source repositories". Here we select tab "Repositories" where we can create new repository. After creation we are presented with commands to either clone repository or connect existing one.
+
+#### Cloud Build
+
+In GCP console, we select Cloud Build from left menu. We will immediately see Build history, which is probably going to be empty because we didn't run our pipeline yet.
+
+When you go to Build triggers tab, you can create your first deployment trigger with "Add Trigger" button.
+
+As of now, trigger creation have 3 steps, I will list here values we want to fill into each step
+
+1 - Source
+- Cloud Source Repository
+
+2 - Repository
+- Select your created Source Repository
+
+3 - Trigger settings
+- Name - Anything descriptive (optional)
+- Trigger type: (default) Branch
+- Branch: .*
+- Included and ignored files filter: (default) empty
+- Build configuration: cloudbuild.yaml
+- cloudbuild.yaml location: (default) /cloudbuild.yaml
+- substitution variables:
+  - _CLOUDSDK_CONTAINER_CLUSTER: your cluster name 
+  - _CLOUDSDK_COMPUTE_ZONE: your cluster zone
+
 ### Creating Cluster
 
 In GCP console: https://console.cloud.google.com/kubernetes/ we will create new Kubernetes cluster 
