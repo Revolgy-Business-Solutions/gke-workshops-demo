@@ -1,0 +1,9 @@
+FROM golang:onbuild
+
+WORKDIR /go/src/app
+
+ADD . .
+
+RUN go build -o main .
+
+CMD ["/go/src/app/main"]

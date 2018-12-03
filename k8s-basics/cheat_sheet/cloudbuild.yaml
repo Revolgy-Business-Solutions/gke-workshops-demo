@@ -1,0 +1,17 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'eu.gcr.io/$PROJECT_ID/go-demo-app/app:$BUILD_ID','.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'eu.gcr.io/$PROJECT_ID/go-demo-app/app:$BUILD_ID']
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+    - -n
+    - demoapp
+    - set
+    - image
+    - deployment
+    - go-api
+    - api=eu.gcr.io/$PROJECT_ID/go-demo-app/app:$BUILD_ID
+    env:
+    - 'CLOUDSDK_COMPUTE_ZONE=europe-west1-c'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=sql-mem-test' 

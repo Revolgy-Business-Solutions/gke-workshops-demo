@@ -110,23 +110,68 @@ Setting will be guided in workshop, here are the main setting changes:
 
 First, we need docker image from our application which we can deploy to kubernetes. In root of our project we create `Dockerfile` file:
 
+The easiest way to build our image is just simply take golang base image prepare specificaly for building Go containers.
+
+
+````
+FROM golang:onbuild
+
+EXPOSE 8080
 ```
-FROM node:8
 
-WORKDIR /usr/src/app
+This approach is strait forward, but with lots of issues and security threats. As we can see from docker image list, base image golang:onbuild has over 600Mb itself and after adding our code, it got only slighly bigger.
 
-ADD package.json ./
+This means that most of the final image size consist of build dependencies and other stuff not needed for actuall program running.
 
-RUN npm install
+One approach to reduce the size of final image is to use smaller base images. Almost all programming language base image will offer images in alpine or similar versions. In comparision with onbuild, we have to build and run application ourself as well as install dependencies in dockerfile.
+
+```
+FROM golang:alpine
+
+WORKDIR /app
+
+ADD . /app
+
+RUN apk add --no-cache git \
+ && go get github.com/gorilla/mux \
+ && go get github.com/go-sql-driver/mysql
+
+RUN cd /app && go build -o goapp
+
+EXPOSE 8080
+
+CMD ["./goapp"]
+``` 
+
+After building this dockerfile we will see that we reduced it to around half size. But its still pretty big considering that our application has just few megabytes in size.
+
+One trick that we can use with compiled languages like Golang, is that we dont actually need all the building dependencies like in the case of interpreted languages.
+
+What we can do is build the application in one container, and then copy only the executable to the other container.
+
+In previous versions of docker this had to be done by using helper Dockerfile and build application in-place in repository.
+
+In newer version we can use a builder pattern. Thats mean that we can specify multiple FROM lines in one Dockerfile where the final image will be build by the last one. The power in this is that we can copy files between these stages.
+
+```
+FROM golang:onbuild as builder
+
+WORKDIR /go/src/app
 
 ADD . .
 
-EXPOSE 3000
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
-CMD ["npm", "start"]
+#---
+
+FROM alpine
+
+WORKDIR /root/
+
+COPY --from=builder /go/src/app/main .
+
+CMD ["./main"]
 ```
-
-We will build and deploy image manually so we can experience whats behind most of the CI/CD pipelines.
 
 You have to tag builded image as `eu.gcr.io/_GCP_PROJECT_ID/SOME_FOLDER/APP_NAME:BUILD_NUMBER`
 

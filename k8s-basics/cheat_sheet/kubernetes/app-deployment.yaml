@@ -19,4 +19,4 @@ spec:
         - name: demoapp
           image: _IMAGE_NAME
           ports: 
-            - containerPort: 3000
+            - containerPort: 8000

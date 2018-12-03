@@ -1,14 +1,19 @@
-FROM node:8
+FROM golang:onbuild as builder
 
-WORKDIR /usr/src/app
-
-ADD package.json ./
-
-RUN npm install
+WORKDIR /app
 
 ADD . .
 
-EXPOSE 3000
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o goapp .
 
-CMD ["npm", "start"]
+#---
 
+FROM alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/goapp .
+
+EXPOSE 8000
+
+CMD ["./goapp"]
