@@ -1,4 +1,4 @@
-# Example deployment of nodejs app with CloudSQL (mysql) to GKE
+# Example deployment of G app with CloudSQL (mysql) to GKE
 
 ## CLI tools initiation
 
