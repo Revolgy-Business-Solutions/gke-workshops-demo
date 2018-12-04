@@ -1,6 +1,6 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'eu.gcr.io/$PROJECT_ID/devfest/app:$BUILD_ID','./k8s-basics/']
+    args: ['build', '-t', 'eu.gcr.io/$PROJECT_ID/devfest/app:$BUILD_ID','/k8s-basics/']
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'eu.gcr.io/$PROJECT_ID/devfest/app:$BUILD_ID']
   - name: 'gcr.io/cloud-builders/kubectl'
