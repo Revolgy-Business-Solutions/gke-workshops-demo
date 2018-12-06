@@ -6,6 +6,8 @@ helm init --service-account=tiller --history-max=10 --debug --upgrade
 ```
 ```
 gcloud compute addresses create kubernetes-ingress --global
+IP=$(gcloud compute addresses describe kubernetes-ingress --global --format='value(address)')
+sed "s/__IP__/$IP/" gce-tls-ingress.yaml
 ```
 
 ```
