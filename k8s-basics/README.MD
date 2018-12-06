@@ -276,7 +276,7 @@ spec:
         - name: demoapp
           image: _IMAGE_NAME
           ports:
-            - containerPort: 3000
+            - containerPort: 8000
 ```
 
 ### Deploying application
@@ -309,7 +309,7 @@ spec:
   - name: http-demoapp
     protocol: TCP
     port: 80
-    targetPort: 3000
+    targetPort: 8000
   type: LoadBalancer
 ```
 
