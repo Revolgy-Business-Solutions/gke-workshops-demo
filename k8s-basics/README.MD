@@ -286,7 +286,7 @@ spec:
   - name: http-demoapp
     protocol: TCP
     port: 80
-    targetPort: 3000
+    targetPort: 8000
   type: LoadBalancer
 ```
 

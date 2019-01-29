@@ -5,19 +5,19 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "gce"
     kubernetes.io/tls-acme: 'true'
-    #kubernetes.io/ingress.global-static-ip-name: "kubernetes-ingress"
+    kubernetes.io/ingress.global-static-ip-name: "kubernetes-ingress"
     #external-dns.alpha.kubernetes.io/hostname: "gke-ingress.example.com"    
 spec:
 spec:
   rules:
-    - host: kuard.marekbartik.com
+    - host: kuard.__IP__.nip.io
       http:
         paths:
           - backend:
               serviceName: kuard
               servicePort: 80
             path: /*
-    - host: kuard-canary.marekbartik.com
+    - host: kuard-canary.__IP__.nip.io
       http:
         paths:
           - backend:
@@ -26,6 +26,6 @@ spec:
             path: /*
   tls:
     - hosts:
-        - "kuard.marekbartik.com"
-        - "kuard-canary.marekbartik.com"
+        - "kuard.__IP__.nip.io"
+        - "kuard-canary.__IP__.nip.io"
       secretName: example-tls
