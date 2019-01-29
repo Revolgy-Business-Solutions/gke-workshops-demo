@@ -6,7 +6,7 @@ metadata:
     app: demoapp
     version: 1.0.0
 spec: 
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: demoapp
@@ -17,6 +17,6 @@ spec:
     spec: 
       containers: 
         - name: demoapp
-          image: _IMAGE_NAME
+          image: kotrev/go-demo-app:1.0.0
           ports: 
             - containerPort: 8000

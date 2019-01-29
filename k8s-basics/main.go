@@ -57,6 +57,8 @@ func main() {
 }
 
 func GetRoot(w http.ResponseWriter, r *http.Request) {
+  fmt.Fprintf(w, "Hello, GoLang backend here.\n")
+  log.Println("Root accessed.")
 }
 
 func GetCpu(w http.ResponseWriter, r *http.Request) {

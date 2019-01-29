@@ -61,6 +61,7 @@ Client Version: version.Info{Major:"1", Minor:"10", GitVersion:"v1.10.7", GitCom
 Server Version: version.Info{Major:"1", Minor:"10+", GitVersion:"v1.10.7-gke.6", GitCommit:"06898a4d0f2b96f82b43d9e59fa2825bd3d616a2", GitTreeState:"clean", BuildDate:"2018-10-02T17:32:01Z", GoVersion:"go1.9.3b4", Compiler:"gc", Platform:"linux/amd64"}
 
 >> docker version
+
 Client:
  Version:           18.06.0-ce
  API version:       1.38
@@ -85,42 +86,11 @@ Note you may have only Client version listed after fresh install and thats corre
 
 ## GCP Project preparation
 
-In this workshop we will be using Google Cloud Platform environment. It offers managed kubernetes environment, Google Kubernetes Engine as well as other services that will be used within this workshop such as managed MySQL database, container image repository and alternatively CI/CD tools.
+In this workshop we will be using Google Cloud Platform environment. It offers managed kubernetes environment, Google Kubernetes Engine as well as other services that will be used within this workshop such as managed MySQL database and container.
 
-### Prepare CI/CD (Optional)
+For that you have to create Google Cloud Project [https://cloud.google.com/resource-manager/docs/creating-managing-projects](cloud.google.com/resource-manager/docs/creating-managing-projects) and you have to enable billing for this project as you can't create any resources without billing configured.
 
-In this workshop we use GCP integrated solution for CI/CD. For CI part, there is feature called "Source Repositories" and for the CD part there is "Cloud Build". It's convenient for our use case since we don't need to employ more 3rd party services than necessary.
-
-Many other CI/CD solution can be used for deploying into GKE (i.e. github / gitlab / bitbucket with jenkins / gilab-ci / shipable etc.) but they are not covered in this workshop.
-
-#### Google Cloud Source Repositories
-
-Cloud Source Repository serve as a private git repository. We create repository in Google UI console. In Tools section of menu there is "Source repositories". Here we select tab "Repositories" where we can create new repository. After creation we are presented with commands to either clone repository or connect existing one.
-
-#### Cloud Build
-
-In GCP console, we select Cloud Build from left menu. We will immediately see Build history, which is probably going to be empty because we didn't run our pipeline yet.
-
-When you go to Build triggers tab, you can create your first deployment trigger with "Add Trigger" button.
-
-As of now, trigger creation have 3 steps, I will list here values we want to fill into each step
-
-1 - Source
-- Cloud Source Repository
-
-2 - Repository
-- Select your created Source Repository
-
-3 - Trigger settings
-- Name - Anything descriptive (optional)
-- Trigger type: (default) Branch
-- Branch: .*
-- Included and ignored files filter: (default) empty
-- Build configuration: cloudbuild.yaml
-- cloudbuild.yaml location: (default) /cloudbuild.yaml
-- substitution variables:
-  - _CLOUDSDK_CONTAINER_CLUSTER: your cluster name 
-  - _CLOUDSDK_COMPUTE_ZONE: your cluster zone
+Google Cloud Platform have a free tear for new accounts/projects that consist of $300 (or 12 months, whichever run out first). That is plenty for this whole workshop and other testing.
 
 ### Creating Cluster
 
@@ -130,20 +100,19 @@ Setting will be guided in workshop, here are the main setting changes:
 
 - Location type: Zonal
 - Zone: europe-west1-c
-- Master version: 1.10.6-gke.6
+- Master version: 1.10.6-gke.6 (or current default value)
 
 - NodePool:
-  - size: 2
+  - size: 3
   - Boot disk size: 40Gb
   - Enable preemptible nodes
   - Disable auto-upgrade
 
-- Scopes:
-  - CloudSQL - enabled
-
 ## Docker image preparation
 
-First, we need docker image from our application which we can deploy to kubernetes. In root of our project we create `Dockerfile` file:
+First, we need docker image from our application which we can deploy to kubernetes. In root of our project we create `Dockerfile` file.
+
+### Docker best practices - Image size
 
 The easiest way to build our image is just simply take golang base image prepare specificaly for building Go containers.
 
@@ -156,9 +125,9 @@ EXPOSE 8080
 
 This approach is strait forward, but with lots of issues and security threats. As we can see from docker image list, base image golang:onbuild has over 600Mb itself and after adding our code, it got only slighly bigger.
 
-This means that most of the final image size consist of build dependencies and other stuff not needed for actuall program running.
+That means that most of the final image size consist of build dependencies and other stuff not needed for actuall program running.
 
-One approach to reduce the size of final image is to use smaller base images. Almost all programming language base image will offer images in alpine or similar versions. In comparision with onbuild, we have to build and run application ourself as well as install dependencies in dockerfile.
+One approach to reduce the size of final image is to use smaller base images. For almost all programming languages there will be images in alpine or similar versions available. In comparision with onbuild, we have to build and run application ourself as well as install dependencies in dockerfile.
 
 ```
 FROM golang:alpine
@@ -173,20 +142,20 @@ RUN apk add --no-cache git \
 
 RUN cd /app && go build -o goapp
 
-EXPOSE 8080
+EXPOSE 8000
 
 CMD ["./goapp"]
 ``` 
 
 After building this dockerfile we will see that we reduced it to around half size. But its still pretty big considering that our application has just few megabytes in size.
 
-One trick that we can use with compiled languages like Golang, is that we dont actually need all the building dependencies like in the case of interpreted languages.
+One trick that we can use with compiled languages like Golang, is that we dont actually need either building, neither running dependencies like in the case of interpreted languages.
 
-What we can do is build the application in one container, and then copy only the executable to the other container.
+What we can do is build the application in one container, and then copy only the executable file to the final container.
 
-In previous versions of docker this had to be done by using helper Dockerfile and build application in-place in repository.
+In previous versions of docker this had to be done by using another, helper, Dockerfile and build application in-place in repository.
 
-In newer version we can use a builder pattern. Thats mean that we can specify multiple FROM lines in one Dockerfile where the final image will be build by the last one. The power in this is that we can copy files between these stages.
+In newer version we can use the builder pattern. Thats mean that we can specify multiple FROM lines in one Dockerfile where the final image will be build by the last one. The power in this is that we can copy files between these stages.
 
 ```
 FROM golang:onbuild as builder
@@ -208,7 +177,17 @@ COPY --from=builder /go/src/app/main .
 CMD ["./main"]
 ```
 
-You have to tag builded image as `eu.gcr.io/_GCP_PROJECT_ID/SOME_FOLDER/APP_NAME:BUILD_NUMBER`
+As you will see from docker images, this final images will have a little over 10Mb in size. Thats quite a difference over the previsous 700Mb. This means lower pulling times on VM instances as well as smaller atack surface for possible vulnerabilities.
+
+Even this container isn't the smallest possible. As we have a executable file, we dont even need all the alpine dependencies and use SCRATCH base image, which basically means a blank base image where we copy only our executable files. Of course in this case you have to take care about things that you application possibly needs, for example for receiving ssl traffic you need to install ca-certificates and so on. 
+
+With this last method you will get the final image to around 6Mb which is 1/100th of the onbuild variation.
+
+### Uploading image to Google Container Repository (GCR)
+
+As we will be running kubernetes environmnet on GCP, we want to pull all images from associated projects GCR. That provides faster image pull speeds and better security.
+
+In order to upload docker image into GCR you have to tag builded image as `eu.gcr.io/GCP_PROJECT_ID/SOME_FOLDER/APP_NAME:BUILD_NUMBER`
 
 In my case docker build will look like this:
 
@@ -216,13 +195,9 @@ In my case docker build will look like this:
 docker build -t eu.gcr.io/xxx/k8s-demo/app:1
 ```
 
-Next we can push this image to Container Registry on our Google Cloud Project
+Second step is (if not done already) is to set gcloud as Docker credential helper [https://cloud.google.com/container-registry/docs/advanced-authentication](https://cloud.google.com/container-registry/docs/advanced-authentication) `gcloud auth configure-docker`. After that, we can use typical `docker push IMAGE_TAG` and docker engine will automatically (based on the host prefix "eu.gcr.io" or just "gcr.io") push the image into the GCR of a projects specified in the image tag (provided you have enough priviledges with you account to do that)
 
-```
-gcloud docker -- push eu.gcr.io/xxx/k8s-demo/app:1
-```
-
-## Kubernetes configuration
+## Kubernetes access configuration
 
 ### Accessing cluster
 
@@ -233,6 +208,8 @@ gcloud container clusters list
 ```
 gcloud container clusters get-credentials k8s-demo --zone europe-west1-c
 ```
+
+## Operating Kubernetes
 
 ### Create namespace
 
@@ -274,9 +251,9 @@ spec:
     spec:
       containers:
         - name: demoapp
-          image: _IMAGE_NAME
+          image: kotrev/go-demo-app:1.0.0
           ports:
-            - containerPort: 3000
+            - containerPort: 8000
 ```
 
 ### Deploying application
@@ -348,17 +325,16 @@ spec:
 Deployment itself keeps desired replicas deployed but it can only see if container is running or not which is based on if core continer process is running or not. What it can't do though is recognize where application is healthy, working properly, isn't overloaded etc. For this purpose we have two probes that we can utilize.
 
 ```
-    readinessProbe:
-      tcpSocket:
-        port: 3000
-      initialDelaySeconds: 10
-      periodSeconds: 10
-
-    livenessProbe:
-      tcpSocket:
-        port: 3000
-      initialDelaySeconds: 15
-      periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
 ```
 
 We can redeploy our application with:
@@ -385,11 +361,11 @@ We can specify parameters of upgrading deployment to new image version.
 Default upgrade strategy is rolling update with 25% max unavailable and 25% max surge
 
 ```
-strategy:
-  type: RollingUpdate
-  rollingUpdate:
-    maxSurge: 1
-    maxUnavailable: 0
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
 ```
 
 ### kubectl set image deployment 
@@ -405,13 +381,13 @@ kubectl set image deployment.v1.apps/demoapp demoapp=IMAGE_TAG
 We can limit the amount of resources that each container can utilize on node as well as how much is guaranteed for container to have. 
 
 ```
-resources: 
-  requests: 
-    cpu: 200m
-    memory: 128Mi 
-  limits: 
-    cpu: 300m 
-    memory: 256Mi
+          resources:
+            requests:
+              cpu: 200m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
 ```
 
 ### Deployment autoscaling
@@ -462,23 +438,23 @@ nodeSelector:
 In newer version of kubernetes affinities needs to be used for handling pod assigning.
 
 ```
-affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: env
-            operator: In
-            values:
-            - dev
-      preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 1
-        preference:
-          matchExpressions:
-          - key: node-type
-            operator: In
-            values:
-            - preemptible
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: env
+                operator: In
+                values:
+                - dev
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                - preemptible
 ```
 
 #### Pod affinity and anti-affinity
@@ -486,27 +462,27 @@ affinity:
 We can also configure with pod affinity and anti-affinity that we want that pod to run or not run on nodes that allready runs pods with specific labels.
 
 ```
-affinity:
-  podAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-    - labelSelector:
-        matchExpressions:
-        - key: app
-          operator: In
-          values:
-          - kuard
-      topologyKey: "kubernetes.io/hostname"
-  podAntiAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-    - weight: 100
-      podAffinityTerm:
-        labelSelector:
-          matchExpressions:
-          - key: app
-            operator: In
-            values:
-            - demoapp
-        topologyKey: "kubernetes.io/hostname"
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - kuard
+              topologyKey: "kubernetes.io/hostname"
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - demoapp
+            topologyKey: "kubernetes.io/hostname"
 ```
 
 #### Taints and tolerations
