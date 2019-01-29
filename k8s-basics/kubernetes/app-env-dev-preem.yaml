@@ -1,0 +1,56 @@
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+  name: demoapp-preemptible
+  labels:
+    app: demoapp-preemptible
+    version: 1.0.0
+spec: 
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: demoapp-preemptible
+  template: 
+    metadata: 
+      labels: 
+        app: demoapp-preemptible
+    spec: 
+      containers: 
+      - name: demoapp-preemptible
+        image: kotrev/go-demo-app:1.0.0
+        ports: 
+          - containerPort: 8000
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 256Mi
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: env
+                operator: In
+                values:
+                - dev
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: type
+                operator: In
+                values:
+                - preemptible
+      tolerations:
+      - key: "env"
+        operator: "Equal"
+        value: "dev"
+        effect: "NoSchedule"

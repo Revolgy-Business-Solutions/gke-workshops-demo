@@ -383,13 +383,13 @@ kubectl set image deployment.v1.apps/demoapp demoapp=IMAGE_TAG
 We can limit the amount of resources that each container can utilize on node as well as how much is guaranteed for container to have. 
 
 ```
-          resources:
-            requests:
-              cpu: 200m
-              memory: 128Mi
-            limits:
-              cpu: 300m
-              memory: 256Mi
+        resources:
+          requests:
+            cpu: 200m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 256Mi
 ```
 
 ### Deployment autoscaling
@@ -397,7 +397,7 @@ We can limit the amount of resources that each container can utilize on node as 
 We can turn on deployment autoscaling manually with kubectl cli.
 
 ```
-kubectl autoscale deployment demoapp --min 1 --max 3 --cpu-percent 60
+kubectl autoscale deployment demoapp --min 3 --max 10 --cpu-percent 60
 ```
 
 HPA can be also deploy from file which is usualy preffered. Here we will try to get configuration setup of already running resource. `-o yaml` parameter returns yaml representation of deployed resource
@@ -494,11 +494,11 @@ kubectl taint nodes node1 env=dev:NoSchedule
 ```
 
 ```
-			tolerations:
-			- key: "env"
-				operator: "Equal"
-				value: "dev"
-				effect: "NoSchedule"
+      tolerations:
+      - key: "env"
+        operator: "Equal"
+        value: "dev"
+        effect: "NoSchedule"
 ```
 
 ### Volumes

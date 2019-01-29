@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: basic-ingress
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "kubernetes-ingress"
+spec:
+  rules:
+    - host: demo.35.241.35.244.nip.io
+      http:
+        paths:
+          - backend:
+              serviceName: demoapp
+              servicePort: 80
+            path: /*
