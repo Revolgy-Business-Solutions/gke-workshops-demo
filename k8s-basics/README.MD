@@ -240,7 +240,7 @@ metadata:
     app: demoapp
     version: 1.0.0
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: demoapp
@@ -292,7 +292,7 @@ spec:
 
 With type: `LoadBalancer` we get assigned external IP address to our service. We can now directly access our service with this IP address
 
-Since it's not the best practice to use these service types and have multiple services accessible directly from the internet, we will edit service in place with kubectl and change service type to NodePort.
+Since it's usually not the best practice to use these service types and have multiple services accessible directly from the internet, we will edit service in place with kubectl and change service type to NodePort.
 
 ```
 kubectl edit svc demoapp
@@ -302,7 +302,9 @@ Next we will make service service accessible with better solution.
 
 #### Kubernetes Ingress
 
-Acording to best practices, system should have allways have only one entrypoint to the cluster from the internet
+Acording to best practices, system should have usually only one entrypoint to the cluster from the internet (or one per environment etc.)
+
+Such gateway is implemented in Kubernetes as Ingress resource.
 
 ```
 apiVersion: extensions/v1beta1
@@ -492,11 +494,11 @@ kubectl taint nodes node1 env=dev:NoSchedule
 ```
 
 ```
-tolerations:
-- key: "env"
-  operator: "Equal"
-  value: "dev"
-  effect: "NoSchedule"
+			tolerations:
+			- key: "env"
+				operator: "Equal"
+				value: "dev"
+				effect: "NoSchedule"
 ```
 
 ### Volumes
@@ -542,18 +544,17 @@ example usage:
 Here we have example of init container that downloads index page of kubernetes website and saves it to local storage.
 
 ```
-initContainers:
-- name: install
-  image: busybox
-  command:
-  - wget
-  - "-O"
-  - "/work-dir/kube.html"
-  - http://kubernetes.io
-  volumeMounts:
-  - name: workdir
-    mountPath: "/work-dir"
-
+      initContainers:
+      - name: install
+        image: busybox
+        command:
+        - wget
+        - "-O"
+        - "/work-dir/kube.html"
+        - http://kubernetes.io
+        volumeMounts:
+        - name: workdir
+          mountPath: "/work-dir"
 ```
 
 We mounted volume into the container, but we didn't specify where or how the volume is created.
@@ -651,51 +652,51 @@ kubectl create secret generic cloudsql-db-credentials \
 with credentials prepared, we can add sidecar yaml configuration to our application deployment.
 
 ```
-- name: cloudsql-proxy
-  image: gcr.io/cloudsql-docker/gce-proxy:1.11
-  command: ["/cloud_sql_proxy",
-            "-instances=<INSTANCE_CONNECTION_NAME>=tcp:3306",
-            "-credential_file=/secrets/cloudsql/credentials.json"]
-  securityContext:
-    runAsUser: 2  # non-root user
-    allowPrivilegeEscalation: false
-  volumeMounts:
-    - name: cloudsql-instance-credentials
-      mountPath: /secrets/cloudsql
-      readOnly: true
+      - name: cloudsql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.11
+        command: ["/cloud_sql_proxy",
+                  "-instances=<INSTANCE_CONNECTION_NAME>=tcp:3306",
+                  "-credential_file=/secrets/cloudsql/credentials.json"]
+        securityContext:
+          runAsUser: 2  # non-root user
+          allowPrivilegeEscalation: false
+        volumeMounts:
+          - name: cloudsql-instance-credentials
+            mountPath: /secrets/cloudsql
+            readOnly: true
 ```
 
 ```
-volumes:
-  - name: cloudsql-instance-credentials
-    secret:
-      secretName: cloudsql-instance-credentials
+      volumes:
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials
 ```
 
 #### Defining environment variables for connecting to DB
 ```
-env:
-- name: "MYSQL_DATABASE"
-  value: "True"
-- name: "MYSQL_USER"
-  value: "user"
-- name: "MYSQL_PASS"
-  value: "usertest"
+        env:
+        - name: "MYSQL_DATABASE"
+          value: "True"
+        - name: "MYSQL_USER"
+          value: "user"
+        - name: "MYSQL_PASS"
+          value: "usertest"
 ```
 As we can see, we are specifying user credentials directly in the container configuration. This is, of course, bad practice since those credentials could be eaily accessed either from container description or stored configuration in repo. We will change it to use kubernetes secrets.
 
 #### Adding secrets as container environment variables
 
 ```
-env:
-- name: MYSQL_USER
-  valueFrom:
-    secretKeyRef:
-      name: cloudsql-db-credentials
-      key: username
-- name: MYSQL_PASS
-  valueFrom:
-    secretKeyRef:
-      name: cloudsql-db-credentials
-      key: password
+        env:
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: cloudsql-db-credentials
+              key: username
+        - name: MYSQL_PASS
+          valueFrom:
+            secretKeyRef:
+              name: cloudsql-db-credentials
+              key: password
 ```

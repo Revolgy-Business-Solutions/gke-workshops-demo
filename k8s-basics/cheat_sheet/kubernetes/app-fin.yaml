@@ -36,14 +36,14 @@ spec:
                 name: cloudsql-db-credentials
                 key: password
           ports: 
-            - containerPort: 3000
+            - containerPort: 8000
           livenessProbe:
             failureThreshold: 1
             initialDelaySeconds: 30
             periodSeconds: 20
             successThreshold: 1
             tcpSocket:
-              port: 3000
+              port: 8000
             timeoutSeconds: 1
           readinessProbe:
             failureThreshold: 3
@@ -51,7 +51,7 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             tcpSocket:
-              port: 3000
+              port: 8000
             timeoutSeconds: 1
           resources:
             requests:
@@ -63,7 +63,7 @@ spec:
         - name: cloudsql-proxy
           image: gcr.io/cloudsql-docker/gce-proxy:1.11
           command: ["/cloud_sql_proxy",
-                    "-instances=kot-test-207914:europe-west1:workshop-app=tcp:3306",
+                    "-instances=_CLOUDSQL_CONNECTION_STRING_=tcp:3306",
                     "-credential_file=/secrets/cloudsql/credentials.json"]
           volumeMounts:
             - name: cloudsql-instance-credentials
