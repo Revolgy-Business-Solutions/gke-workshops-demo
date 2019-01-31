@@ -3,7 +3,7 @@ kind: PodDisruptionBudget
 metadata:
   name: demoapp-pdb
 spec:
-  minAvailable: 2
+  minAvailable: 3
   selector:
     matchLabels:
       app: demoapp

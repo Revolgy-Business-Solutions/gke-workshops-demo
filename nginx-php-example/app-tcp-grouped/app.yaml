@@ -1,0 +1,85 @@
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+  name: demoapp
+  labels:
+    app: demoapp
+    version: 1.0.0
+spec: 
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demoapp
+  template: 
+    metadata: 
+      labels: 
+        app: demoapp
+    spec: 
+      containers: 
+      - name: php
+        image: kotrev/nginx-php-tcp-socket:1
+        ports: 
+        - containerPort: 9000
+        volumeMounts:
+        - name: php-fpm-config
+          mountPath: /usr/local/etc/php-fpm.d/www.conf
+          subPath: www.conf
+        - name: shared-files
+          mountPath: /var/www/html
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "cp -r /app/. /var/www/html"]
+
+      - name: nginx
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: shared-files
+          mountPath: /var/www/html
+
+      - name: cloudsql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.13
+        command: ["/cloud_sql_proxy",
+                  "-instances=CLOUDSQ_CONNECTION_NAME=tcp:3306",
+                  "-credential_file=/secrets/cloudsql/credentials.json"]
+        securityContext:
+          runAsUser: 2  # non-root user
+          allowPrivilegeEscalation: false
+        volumeMounts:
+          - name: cloudsql-instance-credentials
+            mountPath: /secrets/cloudsql
+            readOnly: true
+
+      volumes:
+      - name: php-fpm-config
+        configMap:
+          name: php-fpm-config
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+      - name: shared-files
+        emptyDir: {}
+      - name: cloudsql-instance-credentials
+        secret:
+          secretName: cloudsql-instance-credentials
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demoapp
+spec:
+  selector:
+    app: demoapp
+  ports:
+  - name: http-demoapp
+    protocol: TCP
+    port: 80
+    targetPort: 80
+  type: NodePort
+
