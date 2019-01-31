@@ -1,10 +1,10 @@
-# PHP FPM & nginx demo application - tcp connection
+# PHP FPM & nginx demo application - tcp & unix connection
 
 ## Description
 
 Example php application with 3-container deployment (php-fpm, nginx, cloudsqlproxy). Each folder contain the same application files. Difference is in Dockerfile between the tcp and unix version.
 
-For testing purposes you can build and deploy application and test on endpoints:
+For testing purposes you can build and deploy application and test on endpoints (database credentials are, for testing purposes just hardcoded in db.php file):
 
 ```
 _dns/index.html_  for getting file dirrectly from nginx container
