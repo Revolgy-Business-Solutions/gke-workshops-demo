@@ -583,6 +583,7 @@ Once we are in the database. we will create our test database, table and insert 
 
 ```
 CREATE DATABASE bookstore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+use bookstore;
 ```
 
 ```
@@ -643,18 +644,18 @@ kubectl create secret generic cloudsql-db-credentials \
 with credentials prepared, we can add sidecar yaml configuration to our application deployment.
 
 ```
-      - name: cloudsql-proxy
-        image: gcr.io/cloudsql-docker/gce-proxy:1.11
-        command: ["/cloud_sql_proxy",
-                  "-instances=<INSTANCE_CONNECTION_NAME>=tcp:3306",
-                  "-credential_file=/secrets/cloudsql/credentials.json"]
-        securityContext:
-          runAsUser: 2  # non-root user
-          allowPrivilegeEscalation: false
-        volumeMounts:
-          - name: cloudsql-instance-credentials
-            mountPath: /secrets/cloudsql
-            readOnly: true
+        - name: cloudsql-proxy
+          image: gcr.io/cloudsql-docker/gce-proxy:1.11
+          command: ["/cloud_sql_proxy",
+                    "-instances=<INSTANCE_CONNECTION_NAME>=tcp:3306",
+                    "-credential_file=/secrets/cloudsql/credentials.json"]
+          securityContext:
+            runAsUser: 2  # non-root user
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: cloudsql-instance-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
 ```
 
 ```
