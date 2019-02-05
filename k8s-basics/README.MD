@@ -427,6 +427,11 @@ spec:
 
 Now we can try generate some load on our application
 
+
+```
+IP=$(kubectl get svc demoapp -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+siege -c 100 -d '0.5' http://$IP/
+```
 ### Assigning pods to nodes
 
 #### Node affinities
