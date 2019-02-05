@@ -667,28 +667,30 @@ with credentials prepared, we can add sidecar yaml configuration to our applicat
 
 #### Defining environment variables for connecting to DB
 ```
-        env:
-        - name: "MYSQL_DATABASE"
-          value: "True"
-        - name: "MYSQL_USER"
-          value: "user"
-        - name: "MYSQL_PASS"
-          value: "usertest"
+          env:
+          - name: "MYSQL_DATABASE"
+            value: "True"
+          - name: "MYSQL_USER"
+            value: "user"
+          - name: "MYSQL_PASS"
+            value: "usertest"
 ```
 As we can see, we are specifying user credentials directly in the container configuration. This is, of course, bad practice since those credentials could be eaily accessed either from container description or stored configuration in repo. We will change it to use kubernetes secrets.
 
 #### Adding secrets as container environment variables
 
 ```
-        env:
-        - name: MYSQL_USER
-          valueFrom:
-            secretKeyRef:
-              name: cloudsql-db-credentials
-              key: username
-        - name: MYSQL_PASS
-          valueFrom:
-            secretKeyRef:
-              name: cloudsql-db-credentials
-              key: password
+          env:
+          - name: "MYSQL_DATABASE"
+            value: "True"
+          - name: MYSQL_USER
+            valueFrom:
+              secretKeyRef:
+                name: cloudsql-db-credentials
+                key: username
+          - name: MYSQL_PASS
+            valueFrom:
+              secretKeyRef:
+                name: cloudsql-db-credentials
+                key: password
 ```
