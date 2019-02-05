@@ -385,13 +385,13 @@ kubectl set image deployment/demoapp demoapp=kotrev/go-demo-app:2.0.0
 We can limit the amount of resources that each container can utilize on node as well as how much is guaranteed for container to have. 
 
 ```
-        resources:
-          requests:
-            cpu: 200m
-            memory: 128Mi
-          limits:
-            cpu: 300m
-            memory: 256Mi
+          resources:
+            requests:
+              cpu: 200m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
 ```
 
 ### Deployment autoscaling
