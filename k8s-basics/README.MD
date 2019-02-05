@@ -551,33 +551,17 @@ example usage:
 Here we have example of init container that downloads index page of kubernetes website and saves it to local storage.
 
 ```
-      initContainers:
-      - name: install
-        image: busybox
-        command:
-        - wget
-        - "-O"
-        - "/work-dir/kube.html"
-        - http://kubernetes.io
-        volumeMounts:
-        - name: workdir
-          mountPath: "/work-dir"
-```
-
-We mounted volume into the container, but we didn't specify where or how the volume is created.
-
-```
-volumes:
-- name: workdir
-  emptyDir: {}
-```
-
-Next we mount that volume to our application container so we can access downloaded index.
-
-```
-volumeMounts:
-- name: workdir
-  mountPath: /root/assets
+  initContainers:
+  - name: install
+    image: busybox
+    command:
+    - wget
+    - "-O"
+    - "/work-dir/kube.html"
+    - http://kubernetes.io
+    volumeMounts:
+    - name: test-volume
+      mountPath: "/work-dir"
 ```
 
 ## CLoudSQL sidecar/secrets demo
