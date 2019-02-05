@@ -219,7 +219,8 @@ kubectl create namespace demo
 ```
 
 ```
-kubectl get namespaces / kubectl get ns
+kubectl get namespaces
+kubectl get ns
 ```
 
 ```
@@ -376,7 +377,7 @@ Default upgrade strategy is rolling update with 25% max unavailable and 25% max 
 We don't have to apply whole deployment configuration when we need to upgrade deployment image
 
 ```
-kubectl set image deployment.v1.apps/demoapp demoapp=IMAGE_TAG
+kubectl set image deployment/demoapp demoapp=kotrev/go-demo-app:2.0.0
 ```
 
 ### Deployment resource management
