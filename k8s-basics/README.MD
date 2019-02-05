@@ -192,7 +192,8 @@ In order to upload docker image into GCR you have to tag builded image as `eu.gc
 In my case docker build will look like this:
 
 ```
-docker build -t eu.gcr.io/xxx/k8s-demo/app:1
+export PROJECT=$(gcloud info --format='value(config.project)')
+docker build -t eu.gcr.io/$PROJECT/k8s-demo/app:1 . 
 ```
 
 Second step is (if not done already) is to set gcloud as Docker credential helper [https://cloud.google.com/container-registry/docs/advanced-authentication](https://cloud.google.com/container-registry/docs/advanced-authentication) `gcloud auth configure-docker`. After that, we can use typical `docker push IMAGE_TAG` and docker engine will automatically (based on the host prefix "eu.gcr.io" or just "gcr.io") push the image into the GCR of a projects specified in the image tag (provided you have enough priviledges with you account to do that)
