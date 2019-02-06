@@ -231,6 +231,11 @@ kubectl config current-context
 kubectl config set-context $(kubectl config current-context) --namespace demo
 ```
 
+```
+alias ksc='function _ksc(){ kubectl config set-context `kubectl config current-context` --namespace=$1; };_ksc'
+ksc demo
+```
+
 ### Deployment configuration
 
 ```
