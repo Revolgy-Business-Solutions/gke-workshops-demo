@@ -334,16 +334,16 @@ spec:
 Deployment itself keeps desired replicas deployed but it can only see if container is running or not which is based on if core continer process is running or not. What it can't do though is recognize where application is healthy, working properly, isn't overloaded etc. For this purpose we have two probes that we can utilize.
 
 ```
-          readinessProbe:
-            tcpSocket:
-              port: 8000
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          livenessProbe:
-            tcpSocket:
-              port: 8000
-            initialDelaySeconds: 15
-            periodSeconds: 20
+        readinessProbe:
+          tcpSocket:
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
 ```
 
 We can redeploy our application with:
@@ -377,6 +377,12 @@ Default upgrade strategy is rolling update with 25% max unavailable and 25% max 
       maxUnavailable: 0
 ```
 
+We can check the status of currently running rollout by
+
+```
+kubectl rollout status deployment.v1.apps/demo
+```
+
 ### kubectl set image deployment 
 
 We don't have to apply whole deployment configuration when we need to upgrade deployment image
@@ -390,13 +396,13 @@ kubectl set image deployment/demoapp demoapp=kotrev/go-demo-app:2.0.0
 We can limit the amount of resources that each container can utilize on node as well as how much is guaranteed for container to have. 
 
 ```
-          resources:
-            requests:
-              cpu: 200m
-              memory: 128Mi
-            limits:
-              cpu: 300m
-              memory: 256Mi
+        resources:
+          requests:
+            cpu: 200m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 256Mi
 ```
 
 ### Deployment autoscaling
@@ -431,7 +437,6 @@ spec:
 ```
 
 Now we can try generate some load on our application
-
 
 ```
 IP=$(kubectl get svc demoapp -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -556,17 +561,17 @@ example usage:
 Here we have example of init container that downloads index page of kubernetes website and saves it to local storage.
 
 ```
-  initContainers:
-  - name: install
-    image: busybox
-    command:
-    - wget
-    - "-O"
-    - "/work-dir/kube.html"
-    - http://kubernetes.io
-    volumeMounts:
-    - name: test-volume
-      mountPath: "/work-dir"
+      initContainers:
+      - name: install
+        image: busybox
+        command:
+        - wget
+        - "-O"
+        - "/work-dir/kube.html"
+        - http://kubernetes.io
+        volumeMounts:
+        - name: test-volume
+          mountPath: "/work-dir"
 ```
 
 ## CLoudSQL sidecar/secrets demo
