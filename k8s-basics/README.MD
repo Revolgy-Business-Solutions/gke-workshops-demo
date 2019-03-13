@@ -574,6 +574,21 @@ Here we have example of init container that downloads index page of kubernetes w
           mountPath: "/work-dir"
 ```
 
+We mounted volume into the container, but we didn't specify where or how the volume is created.
+
+```
+volumes:
+- name: workdir
+  emptyDir: {}
+```
+
+Next we mount that volume to our application container so we can access downloaded index.
+
+```
+volumeMounts:
+- name: workdir
+  mountPath: /root/assets
+
 ## CLoudSQL sidecar/secrets demo
 
 ### Create CloudSQL database
