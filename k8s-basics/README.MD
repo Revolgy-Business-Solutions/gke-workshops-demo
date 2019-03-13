@@ -588,6 +588,7 @@ Next we mount that volume to our application container so we can access download
 volumeMounts:
 - name: workdir
   mountPath: /root/assets
+```
 
 ## CLoudSQL sidecar/secrets demo
 
