@@ -334,16 +334,16 @@ spec:
 Deployment itself keeps desired replicas deployed but it can only see if container is running or not which is based on if core continer process is running or not. What it can't do though is recognize where application is healthy, working properly, isn't overloaded etc. For this purpose we have two probes that we can utilize.
 
 ```
-        readinessProbe:
-          tcpSocket:
-            port: 8000
-          initialDelaySeconds: 10
-          periodSeconds: 10
-        livenessProbe:
-          tcpSocket:
-            port: 8000
-          initialDelaySeconds: 15
-          periodSeconds: 20
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
 ```
 
 We can redeploy our application with:
