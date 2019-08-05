@@ -10,7 +10,7 @@ import (
   "fmt"
   "os"
   "database/sql"
-  _ "github.com/go-sql-driver/mysql"
+  //_ "github.com/go-sql-driver/mysql"
 )
 
 type Book struct{
