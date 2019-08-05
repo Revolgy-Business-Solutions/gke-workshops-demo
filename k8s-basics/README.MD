@@ -380,7 +380,7 @@ Default upgrade strategy is rolling update with 25% max unavailable and 25% max 
 We can check the status of currently running rollout by
 
 ```
-kubectl rollout status deployment.v1.apps/demo
+kubectl rollout status deploy/demoapp
 ```
 
 ### kubectl set image deployment 
