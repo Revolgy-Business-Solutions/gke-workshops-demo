@@ -1,8 +1,8 @@
-# Example deployment of Go app with CloudSQL (mysql) to GKE
+# Example deployment of a Golang app with CloudSQL (mysql) to GKE
 
 ## CLI tools initiation
 
-In this course we will use following cli tools:
+In this course we will use the following cli tools:
 
 - gcloud
 - kubectl
@@ -10,15 +10,15 @@ In this course we will use following cli tools:
 
 ### gcloud
 
-Download: `https://cloud.google.com/sdk/install`
+Download and install `https://cloud.google.com/sdk/install`
 
 Init configuration: `gcloud init`
 
-Gcloud init will guide you through init configuration including authenticating with your gmail account which we will use to create our GCP project.
+The previous command will guide you through init configuration including authenticating with your google account which we will use to create our GCP resources.
 
 ### kubectl
 
-Kubernetes cli can be installed as a gcloud component. In can be installed as a standalone app but considering we will be working on GCP infrastructure it is not advisable.
+Kubernetes cli can be installed as a gcloud component. In can be installed as a standalone binary but considering we will be working with GKE, it is not advisable.
 
 ```
 gcloud components install kubectl
@@ -47,13 +47,13 @@ You should see outcome similar to this:
 
 Google Cloud SDK 210.0.0
 alpha 2018.07.16
-app-engine-go 
+app-engine-go
 app-engine-python 1.9.73
 beta 2018.07.16
 bq 2.0.34
 core 2018.07.27
 gsutil 4.33
-kubectl 
+kubectl
 
 >> kubectl version
 
@@ -90,21 +90,21 @@ In this workshop we will be using Google Cloud Platform environment. It offers m
 
 For that you have to create Google Cloud Project [https://cloud.google.com/resource-manager/docs/creating-managing-projects](cloud.google.com/resource-manager/docs/creating-managing-projects) and you have to enable billing for this project as you can't create any resources without billing configured.
 
-Google Cloud Platform have a free tear for new accounts/projects that consist of $300 (or 12 months, whichever run out first). That is plenty for this whole workshop and other testing.
+Google Cloud Platform have a free tier for new accounts/projects that consist of $300 (or 12 months, whichever run out first). That is plenty for this whole workshop and other testing.
 
 ### Creating Cluster
 
-In GCP console: https://console.cloud.google.com/kubernetes/ we will create new Kubernetes cluster 
+In GCP console: https://console.cloud.google.com/kubernetes/ we will create new Kubernetes cluster
 
 Setting will be guided in workshop, here are the main setting changes:
 
-- Location type: Zonal
+- Location type: zonal
 - Zone: europe-west1-c
-- Master version: 1.10.6-gke.6 (or current default value)
+- Master version: 1.12.8-gke.10 (or current default value)
 
 - NodePool:
   - size: 3
-  - Boot disk size: 40Gb
+  - Boot disk size: 40GB
   - Enable preemptible nodes
   - Disable auto-upgrade
 
@@ -114,7 +114,7 @@ First, we need docker image from our application which we can deploy to kubernet
 
 ### Docker best practices - Image size
 
-The easiest way to build our image is just simply take golang base image prepare specificaly for building Go containers.
+The easiest way to build our image is just simply take golang base image prepare specificaly for building Go images.
 
 
 ```
@@ -123,11 +123,11 @@ FROM golang:onbuild
 EXPOSE 8080
 ```
 
-This approach is strait forward, but with lots of issues and security threats. As we can see from docker image list, base image golang:onbuild has over 600Mb itself and after adding our code, it got only slighly bigger.
+This approach is pretty straightforward but it may introduce some issues and security threats. As we can see from docker image list, base image golang:onbuild has over 700MB itself.
 
-That means that most of the final image size consist of build dependencies and other stuff not needed for actuall program running.
+That means that most of the final image size consists of build dependencies and other stuff not needed at runtime.
 
-One approach to reduce the size of final image is to use smaller base images. For almost all programming languages there will be images in alpine or similar versions available. In comparision with onbuild, we have to build and run application ourself as well as install dependencies in dockerfile.
+One approach to reduce the size of final image is to use smaller base images. For almost all programming languages there will be images using alpine or slim versions available.
 
 ```
 FROM golang:alpine
@@ -145,17 +145,15 @@ RUN cd /app && go build -o goapp
 EXPOSE 8000
 
 CMD ["./goapp"]
-``` 
+```
 
-After building this dockerfile we will see that we reduced it to around half size. But its still pretty big considering that our application has just few megabytes in size.
+After building this dockerfile we will see that we reduced it to around half of the size. But its still pretty big considering that our application has just few megabytes in size.
 
-One trick that we can use with compiled languages like Golang, is that we dont actually need either building, neither running dependencies like in the case of interpreted languages.
+One trick that we can use with compiled languages like Golang, is that we dont actually need either build, neither running dependencies like in the case of interpreted languages.
 
 What we can do is build the application in one container, and then copy only the executable file to the final container.
 
-In previous versions of docker this had to be done by using another, helper, Dockerfile and build application in-place in repository.
-
-In newer version we can use the builder pattern. Thats mean that we can specify multiple FROM lines in one Dockerfile where the final image will be build by the last one. The power in this is that we can copy files between these stages.
+Since Docker 17.05 we can use multi-stage builds. We can specify multiple FROM lines in one Dockerfile and the final image will be built by the last FROM specified. The power of multi-stage builds is that we can copy files from layers of different images.
 
 ```
 FROM golang:onbuild as builder
@@ -177,30 +175,35 @@ COPY --from=builder /go/src/app/main .
 CMD ["./main"]
 ```
 
-As you will see from docker images, this final images will have a little over 10Mb in size. Thats quite a difference over the previsous 700Mb. This means lower pulling times on VM instances as well as smaller atack surface for possible vulnerabilities.
+As you will see from docker images, this final images will have a little over 10MB in size. That is quite a difference over the previsous 700MB. This means faster image pulling times on kubernetes nodes as well as smaller atack surface for possible vulnerabilities.
 
-Even this container isn't the smallest possible. As we have a executable file, we dont even need all the alpine dependencies and use SCRATCH base image, which basically means a blank base image where we copy only our executable files. Of course in this case you have to take care about things that you application possibly needs, for example for receiving ssl traffic you need to install ca-certificates and so on. 
+Even this container isn't the smallest possible. As we have a executable file, we dont even need all the alpine dependencies and use `FROM scratch` base image, which basically means a blank base image where we copy only our executable files. Of course in this case you have to take care about things that you application possibly needs, for example for handling ssl traffic you need to install ca-certificates.
 
-With this last method you will get the final image to around 6Mb which is 1/100th of the onbuild variation.
+With this last method you will get the final image to around 6MB.
 
-### Uploading image to Google Container Repository (GCR)
+### Pushing image to Google Container Repository (GCR)
 
-As we will be running kubernetes environmnet on GCP, we want to pull all images from associated projects GCR. That provides faster image pull speeds and better security.
+As we will be running our docker container on GKE, we want to pull all images from associated project's GCR. GCR is a managed reliable and cost-effective service that provides fast image pull speeds and authentication.
 
-In order to upload docker image into GCR you have to tag builded image as `eu.gcr.io/GCP_PROJECT_ID/SOME_FOLDER/APP_NAME:BUILD_NUMBER`
+In order to push docker image into GCR you have to tag the image as `eu.gcr.io/GCP_PROJECT_ID/SOME_FOLDER/APP_NAME:BUILD_NUMBER`
 
-In my case docker build will look like this:
+In our case docker build will look like this:
 
 ```
 export PROJECT=$(gcloud info --format='value(config.project)')
-docker build -t eu.gcr.io/$PROJECT/k8s-demo/app:1 . 
+docker build -t eu.gcr.io/$PROJECT/k8s-demo/app:1 .
 ```
 
-Second step is (if not done already) is to set gcloud as Docker credential helper [https://cloud.google.com/container-registry/docs/advanced-authentication](https://cloud.google.com/container-registry/docs/advanced-authentication) `gcloud auth configure-docker`. After that, we can use typical `docker push IMAGE_TAG` and docker engine will automatically (based on the host prefix "eu.gcr.io" or just "gcr.io") push the image into the GCR of a projects specified in the image tag (provided you have enough priviledges with you account to do that)
+Second step is (if not done already) is to authenticate docker to push to GCR [https://cloud.google.com/container-registry/docs/advanced-authentication](https://cloud.google.com/container-registry/docs/advanced-authentication). After that, we can push the image into the GCR of a project specified in the image tag (provided you have the necessary permissions).
 
-## Kubernetes access configuration
+```
+gcloud auth configure-docker
+docker push eu.gcr.io/$PROJECT/k8s-demo/app:1
+```
 
-### Accessing cluster
+## Kubernetes auth
+
+### Accessing the cluster
 
 ```
 gcloud container clusters list
@@ -210,7 +213,7 @@ gcloud container clusters list
 gcloud container clusters get-credentials k8s-demo --zone europe-west1-c
 ```
 
-## Operating Kubernetes
+## Playing with Kubernetes
 
 ### Create namespace
 
@@ -224,7 +227,7 @@ kubectl get ns
 ```
 
 ```
-kubectl config current-context 
+kubectl config current-context
 ```
 
 ```
@@ -275,11 +278,11 @@ kubectl create -f app-deployment.yaml
 kubectl scale deployment demoapp --replicas 2
 ```
 
-### Accessing microservices
+### Accessing our app
 
-We have our application deployed, but the only way we can access our pods is via their private IP. Thats not very convenient since we would have to address each replica separately and IP would change with every restart of application.
+We have our application deployed, but the only way we can access our pods is from within the cluster.
 
-Kubernetes has feature called services for this. Kubernetes service could be described as loadbalancing reverse proxy above all pods from deployment. 
+Kubernetes has a resource called service that can group the pods and expose them on one single private or public (outside of the cluster) endpoint.
 
 ```
 apiVersion: v1
@@ -297,9 +300,15 @@ spec:
   type: LoadBalancer
 ```
 
-With type: `LoadBalancer` we get assigned external IP address to our service. We can now directly access our service with this IP address
+With type: `LoadBalancer` on GKE we will have a Google TCP loadbalancer provisioned for us and the service object will get its public IP adress in a couple of seconds. You can check Google Cloud Console for the new Network Loadbalancer. 
 
-Since it's usually not the best practice to use these service types and have multiple services accessible directly from the internet, we will edit service in place with kubectl and change service type to NodePort.
+We can now directly access our service with this IP address
+
+```
+kubectl get svc demoapp -w
+```
+
+Now, we will edit the service inplace with kubectl and change service type to NodePort.
 
 ```
 kubectl edit svc demoapp
@@ -309,9 +318,7 @@ Next we will make service service accessible with better solution.
 
 #### Kubernetes Ingress
 
-Acording to best practices, system should have usually only one entrypoint to the cluster from the internet (or one per environment etc.)
-
-Such gateway is implemented in Kubernetes as Ingress resource.
+If you have more services in your cluster and need http loadbalancing rather than tcp loadbalancing, you may need kubernetes Ingress resource.
 
 ```
 apiVersion: extensions/v1beta1
@@ -327,6 +334,13 @@ spec:
        backend:
          serviceName: demoapp
          servicePort: 80
+```
+
+when you create this ingress object, wait for the external IP address you get and assign it to its host.
+
+```
+kubectl apply -f ingress.yaml
+kubectl get ing
 ```
 
 ### Deployment health cycle - Health and Readiness probess
@@ -352,7 +366,7 @@ We can redeploy our application with:
 kubectl apply -f app.yaml
 ```
 
-Kuard demo:
+### kuard demo
 
 ```
 k apply -f kubernetes/kuard.yaml
@@ -383,7 +397,7 @@ We can check the status of currently running rollout by
 kubectl rollout status deploy/demoapp
 ```
 
-### kubectl set image deployment 
+### kubectl set image deployment
 
 We don't have to apply whole deployment configuration when we need to upgrade deployment image
 
@@ -393,16 +407,16 @@ kubectl set image deployment/demoapp demoapp=kotrev/go-demo-app:2.0.0
 
 ### Deployment resource management
 
-We can limit the amount of resources that each container can utilize on node as well as how much is guaranteed for container to have. 
+We can limit the amount of resources that each container can utilize on node as well as how much is guaranteed for container to have.
 
 ```
-        resources:
-          requests:
-            cpu: 200m
-            memory: 128Mi
-          limits:
-            cpu: 300m
-            memory: 256Mi
+          resources:
+            requests:
+              cpu: 200m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
 ```
 
 ### Deployment autoscaling
@@ -454,7 +468,7 @@ nodeSelector:
   cloud.google.com/gke-nodepool: dev-pool
 ```
 
-In newer version of kubernetes affinities needs to be used for handling pod assigning.
+In newer version of kubernetes affinities shall be used for handling pod assigning.
 
 ```
       affinity:
@@ -478,7 +492,7 @@ In newer version of kubernetes affinities needs to be used for handling pod assi
 
 #### Pod affinity and anti-affinity
 
-We can also configure with pod affinity and anti-affinity that we want that pod to run or not run on nodes that allready runs pods with specific labels.
+We can also configure with pod affinity and anti-affinity that we want that pod to run or not run on nodes that already run pods with specific labels.
 
 ```
       affinity:
@@ -522,7 +536,7 @@ kubectl taint nodes node1 env=dev:NoSchedule
 
 There is a lot of different type of volumes that can by mounted into the container. You can find full list of them in the kubernetes documentation.
 
-We will deploy simple nginx server with mounted Google Persistend Disk. First we need to create the disk. On GCP go to compute -> disks and create new disk with the name acording to the name in /volume/nginx-pd-volume.yaml in the repo. Or named it as you like and we will update the configuration.
+We will deploy simple nginx server with mounted Google Persistend Disk. First we need to create the disk. On GCP go to compute -> disks and create new disk with the name acording to the name in /volume/nginx-pd-volume.yaml in the repo.
 
 Now deploy nginx-pd-volume.yaml with the optional change of the PDName (the name of the GCP volume).
 
@@ -643,7 +657,7 @@ First we will create SQL user with gcloud cli. We need to know name of our SQL i
 gcloud sql instances list
 ```
 
-Next we can create db user: 
+Next we can create db user:
 
 ```
 gcloud sql users create [DBUSER] --host=% --instance=[INSTANCE_NAME] --password=[PASSWORD]
